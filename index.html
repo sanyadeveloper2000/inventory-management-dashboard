@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management Dashboard - July 2025</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            animation: slideDown 0.8s ease-out;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .rotating-display {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .control-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+        }
+
+        .control-btn.paused {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+        }
+
+        .item-display {
+            text-align: center;
+            padding: 40px 20px;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border: 2px solid #dee2e6;
+            transition: all 0.5s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .item-display:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+
+        .item-display::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .item-display:hover::before {
+            left: 100%;
+        }
+
+        .item-name {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            line-height: 1.3;
+        }
+
+        .item-category {
+            font-size: 1rem;
+            color: #6c757d;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .stock-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stock-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .stock-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .stock-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #2c3e50;
+        }
+
+        .stock-unit {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-left: 5px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-critical {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .status-low {
+            background: linear-gradient(45deg, #ffa726, #ff7043);
+            color: white;
+        }
+
+        .status-medium {
+            background: linear-gradient(45deg, #ffca28, #ffc107);
+            color: #333;
+        }
+
+        .status-good {
+            background: linear-gradient(45deg, #66bb6a, #4caf50);
+            color: white;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            height: fit-content;
+        }
+
+        .sidebar h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            font-weight: 600;
+        }
+
+        .chart-container {
+            margin-top: 20px;
+            height: 300px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .close-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: #ee5a24;
+            transform: rotate(90deg);
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .detail-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .detail-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .detail-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .chart-modal {
+            height: 400px;
+            margin-top: 20px;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -60%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .stock-info {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <h1>📊 Inventory Management Dashboard</h1>
+            <p>July 2025 - Real-time Stock Monitoring</p>
+        </div>
+
+        <div class="main-content">
+            <div class="rotating-display">
+                <div class="controls">
+                    <button class="control-btn" id="prevBtn">⬅️ Previous</button>
+                    <button class="control-btn" id="playPauseBtn">⏸️ Pause</button>
+                    <button class="control-btn" id="nextBtn">Next ➡️</button>
+                    <span id="itemCounter" style="color: #666; font-weight: 600;">1 / 50</span>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+
+                <div class="item-display" id="itemDisplay" onclick="openModal()">
+                    <div class="item-name" id="itemName">Loading...</div>
+                    <div class="item-category" id="itemCategory">Category</div>
+                    
+                    <div class="stock-info">
+                        <div class="stock-card">
+                            <div class="stock-label">Current Stock</div>
+                            <div class="stock-value" id="currentStock">0<span class="stock-unit" id="stockUnit">UNITS</span></div>
+                        </div>
+                        <div class="stock-card">
+                            <div class="stock-label">Monthly Usage</div>
+                            <div class="stock-value" id="monthlyUsage">0<span class="stock-unit" id="usageUnit">UNITS</span></div>
+                        </div>
+                    </div>
+
+                    <div class="status-badge" id="statusBadge">Good</div>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <h3>📈 Dashboard Overview</h3>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalItems">0</div>
+                        <div class="stat-label">Total Items</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="criticalItems">0</div>
+                        <div class="stat-label">Critical Stock</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="lowItems">0</div>
+                        <div class="stat-label">Low Stock</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="activeCategories">0</div>
+                        <div class="stat-label">Categories</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for detailed view -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">Item Details</div>
+                <button class="close-btn" onclick="closeModal()">×</button>
+            </div>
+            
+            <div class="detail-grid">
+                <div class="detail-card">
+                    <div class="detail-label">Category</div>
+                    <div class="detail-value" id="modalCategory">-</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-label">Unit</div>
+                    <div class="detail-value" id="modalUnit">-</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-label">Total Issued</div>
+                    <div class="detail-value" id="modalIssued">-</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-label">Total Received</div>
+                    <div class="detail-value" id="modalReceived">-</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-label">Current Stock</div>
+                    <div class="detail-value" id="modalStock">-</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-label">Turnover Rate</div>
+                    <div class="detail-value" id="modalTurnover">-</div>
+                </div>
+            </div>
+
+            <div class="chart-modal">
+                <canvas id="detailChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample inventory data based on your CSV files
+        const inventoryData = [
+            {
+                category: 'PUR FOAMS',
+                item: 'PUR FOAM - 23-28D, FR, GREY- 5 MM',
+                unit: 'SQM',
+                totalIssued: 0,
+                totalReceived: 0,
+                currentStock: 315,
+                status: 'Good'
+            },
+            {
+                category: 'PUR FOAMS',
+                item: 'PUR FOAM - 23-28D, FR, GREY- 8 MM',
+                unit: 'SQM',
+                totalIssued: 0,
+                totalReceived: 0,
+                currentStock: 336,
+                status: 'Good'
+            },
+            {
+                category: 'PUR FOAMS',
+                item: 'PUR FOAM - 23-28D, FR, GREY- 15 MM',
+                unit: 'SQM',
+                totalIssued: 201.6,
+                totalReceived: 0,
+                currentStock: 705.6,
+                status: 'Good'
+            },
+            {
+                category: 'PUR FOAMS',
+                item: 'PUR FOAM - 23-28D, FR, GREY- 8 MM',
+                unit: 'SHEET',
+                totalIssued: 50,
+                totalReceived: 0,
+                currentStock: 26,
+                status: 'Low'
+            },
+            {
+                category: 'EVA',
+                item: 'PE C/LINKED FOAM - BLACK - 3 MM',
+                unit: 'MTR',
+                totalIssued: 200,
+                totalReceived: 0,
+                currentStock: 0,
+                status: 'Critical'
+            },
+            {
+                category: 'T. P. FELTS',
+                item: 'TP_750, 17 MM * 40"*32"',
+                unit: 'SHEET',
+                totalIssued: 4050,
+                totalReceived: 5597,
+                currentStock: 1697,
+                status: 'Good'
+            },
+            {
+                category: 'T. P. FELTS',
+                item: 'TP_750, 17 MM * 40"*28"',
+                unit: 'SHEET',
+                totalIssued: 1025,
+                totalReceived: 650,
+                currentStock: 0,
+                status: 'Critical'
+            },
+            {
+                category: 'T. P. FELTS',
+                item: 'TP_450, 12 MM * 40"*32"',
+                unit: 'SHEET',
+                totalIssued: 300,
+                totalReceived: 0,
+                currentStock: 660,
+                status: 'Good'
+            },
+            {
+                category: 'T. P. FELTS',
+                item: 'TP_450, 17 MM * 40"*40"',
+                unit: 'SHEET',
+                totalIssued: 1100,
+                totalReceived: 2550,
+                currentStock: 1450,
+                status: 'Good'
+            },
+            {
+                category: 'T. P. FELTS',
+                item: 'TP_450, 17 MM * 40"*50"',
+                unit: 'SHEET',
+                totalIssued: 375,
+                totalReceived: 600,
+                currentStock: 225,
+                status: 'Medium'
+            },
+            {
+                category: 'RELEASE PAPER',
+                item: 'S. RELEASE PAPER, WHITE, 1000 MM',
+                unit: 'KG',
+                totalIssued: 381.9,
+                totalReceived: 1332,
+                currentStock: 1220.1,
+                status: 'Good'
+            },
+            {
+                category: 'ADHESIVES',
+                item: 'PSA - K 227 E',
+                unit: 'KG',
+                totalIssued: 39.1,
+                totalReceived: 0,
+                currentStock: 60.9,
+                status: 'Medium'
+            },
+            {
+                category: 'ADHESIVES',
+                item: 'FOCUS / HX 5500',
+                unit: 'KG',
+                totalIssued: 87.5,
+                totalReceived: 0,
+                currentStock: 572.5,
+                status: 'Good'
+            },
+            {
+                category: 'DOUBLE SIDED TAPES',
+                item: 'NITTO GA 808',
+                unit: 'SQM',
+                totalIssued: 645,
+                totalReceived: 1500,
+                currentStock: 1105,
+                status: 'Good'
+            },
+            {
+                category: 'DOUBLE SIDED TAPES',
+                item: 'DT 2307',
+                unit: 'SQM',
+                totalIssued: 6227,
+                totalReceived: 7650,
+                currentStock: 1887,
+                status: 'Medium'
+            },
+            {
+                category: 'DOUBLE SIDED TAPES',
+                item: '2310 1200',
+                unit: 'SQM',
+                totalIssued: 1070,
+                totalReceived: 1488,
+                currentStock: 724,
+                status: 'Good'
+            },
+            {
+                category: 'DOUBLE SIDED TAPES',
+                item: '5015 NITTO',
+                unit: 'ROLL',
+                totalIssued: 57,
+                totalReceived: 54,
+                currentStock: 17,
+                status: 'Low'
+            },
+            {
+                category: 'EPT SEALER',
+                item: '8MM/EE1000',
+                unit: 'SHEET',
+                totalIssued: 27,
+                totalReceived: 0,
+                currentStock: 25,
+                status: 'Low'
+            },
+            {
+                category: 'EPT SEALER',
+                item: '10MM/EE1000',
+                unit: 'SHEET',
+                totalIssued: 34,
+                totalReceived: 0,
+                currentStock: 0,
+                status: 'Critical'
+            },
+            {
+                category: 'EPT SEALER',
+                item: '8MM/EE1010',
+                unit: 'SHEET',
+                totalIssued: 5,
+                totalReceived: 0,
+                currentStock: 11,
+                status: 'Medium'
+            },
+            {
+                category: 'EPT SEALER',
+                item: '20MM/EE1010',
+                unit: 'SHEET',
+                totalIssued: 114,
+                totalReceived: 108,
+                currentStock: 1,
+                status: 'Critical'
+            },
+            {
+                category: 'EPT SEALER',
+                item: '10MM/EE686',
+                unit: 'SHEET',
+                totalIssued: 12,
+                totalReceived: 30,
+                currentStock: 30,
+                status: 'Good'
+            },
+            {
+                category: 'EPT SEALER',
+                item: '15MM/EE1010',
+                unit: 'SHEET',
+                totalIssued: 26,
+                totalReceived: 26,
+                currentStock: 0,
+                status: 'Critical'
+            },
+            {
+                category: 'EPDM',
+                item: '2 MM',
+                unit: 'SHEET',
+                totalIssued: 50,
+                totalReceived: 0,
+                currentStock: 250,
+                status: 'Good'
+            },
+            {
+                category: 'GT TAPE',
+                item: '7106',
+                unit: 'ROLL',
+                totalIssued: 0,
+                totalReceived: 160,
+                currentStock: 160,
+                status: 'Good'
+            },
+            {
+                category: 'GT TAPE',
+                item: '7108 (PLASTIC CORE)',
+                unit: 'ROLL',
+                totalIssued: 250,
+                totalReceived: 400,
+                currentStock: 550,
+                status: 'Good'
+            },
+            {
+                category: 'GT TAPE',
+                item: '3M RED',
+                unit: 'BOX',
+                totalIssued: 5,
+                totalReceived: 0,
+                currentStock: 10,
+                status: 'Medium'
+            },
+            {
+                category: 'NW FELT',
+                item: '0.5',
+                unit: 'MTR',
+                totalIssued: 100,
+                totalReceived: 0,
+                currentStock: 50,
+                status: 'Low'
+            },
+            {
+                category: 'NW FELT',
+                item: '1 M',
+                unit: 'MTR',
+                totalIssued: 68,
+                totalReceived: 0,
+                currentStock: 23,
+                status: 'Low'
+            },
+            {
+                category: 'NW FELT',
+                item: '2MM',
+                unit: 'MTR',
+                totalIssued: 205,
+                totalReceived: 530,
+                currentStock: 325,
+                status: 'Good'
+            },
+            {
+                category: 'NITRILE',
+                item: '3 MM',
+                unit: 'ROLL',
+                totalIssued: 1,
+                totalReceived: 0,
+                currentStock: 0,
+                status: 'Critical'
+            },
+            {
+                category: 'NITRILE',
+                item: '6 MM',
+                unit: 'ROLL',
+                totalIssued: 12,
+                totalReceived: 0,
+                currentStock: 14,
+                status: 'Medium'
+            },
+            {
+                category: 'NITRILE',
+                item: '9 MM',
+                unit: 'ROLL',
+                totalIssued: 7,
+                totalReceived: 2,
+                currentStock: 15,
+                status: 'Good'
+            }
+        ];
+
+        // Dashboard state
+        let currentIndex = 0;
+        let isPlaying = true;
+        let rotationInterval;
+        let currentItem = null;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDashboard();
+            startRotation();
+        });
+
+        function initializeDashboard() {
+            updateSummaryStats();
+            createCategoryChart();
+            displayCurrentItem();
+            setupEventListeners();
+        }
+
+        function updateSummaryStats() {
+            const totalItems = inventoryData.length;
+            const criticalItems = inventoryData.filter(item => item.status === 'Critical').length;
+            const lowItems = inventoryData.filter(item => item.status === 'Low').length;
+            const categories = [...new Set(inventoryData.map(item => item.category))].length;
+
+            document.getElementById('totalItems').textContent = totalItems;
+            document.getElementById('criticalItems').textContent = criticalItems;
+            document.getElementById('lowItems').textContent = lowItems;
+            document.getElementById('activeCategories').textContent = categories;
+        }
+
+        function createCategoryChart() {
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            const categories = {};
+            
+            inventoryData.forEach(item => {
+                categories[item.category] = (categories[item.category] || 0) + 1;
+            });
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(categories),
+                    datasets: [{
+                        data: Object.values(categories),
+                        backgroundColor: [
+                            '#667eea', '#764ba2', '#f093fb', '#f5576c',
+                            '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
+                            '#ffecd2', '#fcb69f', '#a8edea', '#fed6e3'
+                        ],
+                        borderWidth: 3,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function displayCurrentItem() {
+            if (inventoryData.length === 0) return;
+            
+            currentItem = inventoryData[currentIndex];
+            const item = currentItem;
+            
+            document.getElementById('itemName').textContent = item.item;
+            document.getElementById('itemCategory').textContent = item.category;
+            document.getElementById('currentStock').innerHTML = `${item.currentStock}<span class="stock-unit">${item.unit}</span>`;
+            document.getElementById('monthlyUsage').innerHTML = `${item.totalIssued}<span class="stock-unit">${item.unit}</span>`;
+            
+            const statusBadge = document.getElementById('statusBadge');
+            statusBadge.textContent = item.status;
+            statusBadge.className = `status-badge status-${item.status.toLowerCase()}`;
+            
+            document.getElementById('itemCounter').textContent = `${currentIndex + 1} / ${inventoryData.length}`;
+            
+            // Update progress bar
+            const progress = ((currentIndex + 1) / inventoryData.length) * 100;
+            document.getElementById('progressFill').style.width = `${progress}%`;
+        }
+
+        function nextItem() {
+            currentIndex = (currentIndex + 1) % inventoryData.length;
+            displayCurrentItem();
+        }
+
+        function prevItem() {
+            currentIndex = (currentIndex - 1 + inventoryData.length) % inventoryData.length;
+            displayCurrentItem();
+        }
+
+        function togglePlayPause() {
+            isPlaying = !isPlaying;
+            const btn = document.getElementById('playPauseBtn');
+            
+            if (isPlaying) {
+                btn.textContent = '⏸️ Pause';
+                btn.classList.remove('paused');
+                startRotation();
+            } else {
+                btn.textContent = '▶️ Play';
+                btn.classList.add('paused');
+                stopRotation();
+            }
+        }
+
+        function startRotation() {
+            if (rotationInterval) {
+                clearInterval(rotationInterval);
+            }
+            rotationInterval = setInterval(nextItem, 3000); // 3 seconds per item
+        }
+
+        function stopRotation() {
+            if (rotationInterval) {
+                clearInterval(rotationInterval);
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('prevBtn').addEventListener('click', () => {
+                prevItem();
+                if (isPlaying) {
+                    stopRotation();
+                    startRotation(); // Restart timer
+                }
+            });
+
+            document.getElementById('nextBtn').addEventListener('click', () => {
+                nextItem();
+                if (isPlaying) {
+                    stopRotation();
+                    startRotation(); // Restart timer
+                }
+            });
+
+            document.getElementById('playPauseBtn').addEventListener('click', togglePlayPause);
+        }
+
+        function openModal() {
+            if (!currentItem) return;
+
+            const modal = document.getElementById('detailModal');
+            const item = currentItem;
+
+            document.getElementById('modalTitle').textContent = item.item;
+            document.getElementById('modalCategory').textContent = item.category;
+            document.getElementById('modalUnit').textContent = item.unit;
+            document.getElementById('modalIssued').textContent = item.totalIssued;
+            document.getElementById('modalReceived').textContent = item.totalReceived;
+            document.getElementById('modalStock').textContent = item.currentStock;
+            
+            const turnoverRate = item.totalIssued > 0 ? (item.totalIssued / Math.max(item.currentStock, 1)).toFixed(2) : '0.00';
+            document.getElementById('modalTurnover').textContent = turnoverRate;
+
+            createDetailChart(item);
+            modal.style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').style.display = 'none';
+        }
+
+        function createDetailChart(item) {
+            const ctx = document.getElementById('detailChart').getContext('2d');
+            
+            // Clear any existing chart
+            if (window.detailChartInstance) {
+                window.detailChartInstance.destroy();
+            }
+
+            window.detailChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Issued', 'Received', 'Current Stock'],
+                    datasets: [{
+                        label: 'Quantity',
+                        data: [item.totalIssued, item.totalReceived, item.currentStock],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.8)',
+                            'rgba(54, 162, 235, 0.8)',
+                            'rgba(75, 192, 192, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(75, 192, 192, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: `${item.item} - Monthly Overview`,
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: `Quantity (${item.unit})`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('detailModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(event) {
+            switch(event.key) {
+                case 'ArrowLeft':
+                    prevItem();
+                    if (isPlaying) {
+                        stopRotation();
+                        startRotation();
+                    }
+                    break;
+                case 'ArrowRight':
+                    nextItem();
+                    if (isPlaying) {
+                        stopRotation();
+                        startRotation();
+                    }
+                    break;
+                case ' ':
+                    event.preventDefault();
+                    togglePlayPause();
+                    break;
+                case 'Escape':
+                    closeModal();
+                    break;
+            }
+        });
+    </script>
+</body>
+</html>
